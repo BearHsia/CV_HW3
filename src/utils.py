@@ -27,9 +27,7 @@ def solve_homography(u, v):
         A[1+2*i,6:9] = -v[i,0]*u[i,:]
     # TODO: 2.solve H with A
     _, _, vh = np.linalg.svd(A, full_matrices=True,compute_uv=True)
-    #print(np.linalg.norm(vh[-1,:]))
-    #print(np.linalg.norm(vh[-2,:]))
-    #norm1 = vh[-1,:] / np.linalg.norm(vh[-1,:])
+
     H = np.reshape(vh[-1,:], (3,3))
     return H
 

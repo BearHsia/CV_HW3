@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 
 random.seed(999)
 #RANSAC parameters
-N_tri = 1000 # number if trials
+N_tri = 10000 # number if trials
 T_dis = 5 # threshold for kicking out outliers
 
 def drawcircle_key(img,list_of_key):
@@ -56,41 +56,19 @@ def panorama(imgs):
         # Match descriptors.
         matches = bf.match(des1,des2)
         # Sort them in the order of their distance.
-        matches = sorted(matches, key = lambda x:x.distance)
-        matches = matches[:int(0.8*len(matches))]
+        #matches = sorted(matches, key = lambda x:x.distance)
+        #matches = matches[:int(0.8*len(matches))]
 
         #img3 = cv2.drawMatches(im1,kp1,im2,kp2,matches[:10],None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
         #plt.imshow(img3),plt.show()
 
-        kp1_idx = []
-        kp2_idx = []
+        kp1_xy = np.zeros((2,len(matches)))
+        kp2_xy = np.zeros((2,len(matches)))
         for idx in range(len(matches)):
-            kp1_idx.append(matches[idx].queryIdx)
-            kp2_xy[0,i] = kp2[idx].pt[0]
-            kp2_idx.append(matches[idx].trainIdx)
-            kp2_xy[1,i] = kp2[idx].pt[1]
-
-        tmp = drawcircle_key(im1,kp1_idx)
-        plt.subplot(1,2,1)
-        plt.imshow(tmp)
-        tmp = drawcircle_key(im2,kp2_idx)
-        plt.subplot(1,2,2)
-        plt.imshow(tmp),plt.show()
-
-
-        #kp1_xy = np.zeros((2,len(kp1)))
-        #for i in range(len(kp1)):
-        #    kp1_xy[0,i] = kp1[idx].pt[0]
-        #    kp1_xy[1,i] = kp1[idx].pt[1]
-        #kp2_xy = np.zeros((2,len(kp2)))
-        #for i in range(len(kp2)):
-        #    kp2_xy[0,i] = kp2[idx].pt[0]
-        #    kp2_xy[1,i] = kp2[idx].pt[1]
-
-        #kp1 = np.array([kp1[idx].pt for idx in range(0, len(kp1))])
-        #kp1 = np.transpose(kp1)
-        #kp2 = np.array([kp2[idx].pt for idx in range(0, len(kp2))])
-        #kp2 = np.transpose(kp2)
+            kp1_xy[0,idx] = kp1[matches[idx].queryIdx].pt[0]
+            kp1_xy[1,idx] = kp1[matches[idx].queryIdx].pt[1]
+            kp2_xy[0,idx] = kp2[matches[idx].trainIdx].pt[0]
+            kp2_xy[1,idx] = kp2[matches[idx].trainIdx].pt[1]
 
         #tmp = drawcircle(im1,kp1_xy)
         #plt.subplot(1,2,1)
@@ -99,13 +77,11 @@ def panorama(imgs):
         #plt.subplot(1,2,2)
         #plt.imshow(tmp),plt.show()
 
-        S_kp1 = kp1[:,kp1_idx]
-        S_kp2 = kp2[:,kp2_idx]
-        S_kp1 = np.pad(S_kp1,((0,1),(0,0)),constant_values=1)
-        S_kp2 = np.pad(S_kp2,((0,1),(0,0)),constant_values=1)
+        S_kp1 = np.pad(kp1_xy,((0,1),(0,0)),constant_values=1)
+        S_kp2 = np.pad(kp2_xy,((0,1),(0,0)),constant_values=1)
 
         # TODO: 2. apply RANSAC to choose best H
-        NH = np.zeros((N_tri,3,3,))
+        NH = np.zeros((N_tri,3,3))
         NI = np.zeros((N_tri,))         #inliners number
         ID = list(range(len(matches)))
         for trial_i in range(N_tri):
@@ -114,11 +90,11 @@ def panorama(imgs):
             u = np.transpose(S_kp2[:2,ss])
             #print(v.shape)
             H_temp = solve_homography(u, v)
-            est_S_kp1 = np.matmul(H_temp,S_kp1)
+            est_S_kp1 = np.matmul(H_temp,S_kp2)
             est_S_kp1[0,:] = est_S_kp1[0,:]/est_S_kp1[2,:]
             est_S_kp1[1,:] = est_S_kp1[1,:]/est_S_kp1[2,:]
             est_S_kp1[2,:] = est_S_kp1[2,:]/est_S_kp1[2,:]
-            dist = np.linalg.norm(est_S_kp1[:2,:]-S_kp1[:2,:],axis=0,ord=1)
+            dist = np.linalg.norm(est_S_kp1[:2,:]-S_kp1[:2,:],axis=0,ord=2)
             NI[trial_i] = np.sum(dist<T_dis)
             NH[trial_i,...] = H_temp
         #print(np.argmax(NI))
@@ -127,8 +103,8 @@ def panorama(imgs):
         # TODO: 3. chain the homographies
         last_best_H = np.matmul(last_best_H,H_best)
         # TODO: 4. apply warping
-        h, w, _ = im2.shape
-        dst = warping(im2, dst, last_best_H, 0, h, 0, w, direction='f')
+        dst = warping(im2, dst, last_best_H, 0, h_max, 0, w_max, direction='b')
+    
     return dst
 
 
