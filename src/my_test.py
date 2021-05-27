@@ -97,3 +97,9 @@ for i in range(3):
     NN[i,...] = N_tmp
 print(NN)
 """
+aaa = np.array([[1,2,3],[4,5,6],[7,8,9]])
+print(aaa)
+print(aaa[[0,2],[0,2]])
+aaa[[0,2],[0,2]] = 1
+
+print(aaa)

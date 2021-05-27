@@ -19,6 +19,7 @@ if __name__ == '__main__':
     output3_1 = warping(secret1, dst, H, 0, h, 0, w, direction='b')
     
     H = solve_homography(corners2, y)
+    dst = np.zeros((h, w, c))
     output3_2 = warping(secret2, dst, H, 0, h, 0, w, direction='b')
 
     cv2.imwrite('output3_1.png', output3_1)

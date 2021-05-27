@@ -32,7 +32,7 @@ def solve_homography(u, v):
     return H
 
 
-def warping(src, dst, H, ymin, ymax, xmin, xmax, direction='b'):
+def warping(src, dst, H, ymin, ymax, xmin, xmax, direction='b',alpha_blending=False,alpha=0.5):
     """
     Perform forward/backward warpping without for loops. i.e.
     for all pixels in src(xmin~xmax, ymin~ymax),  warp to destination
@@ -98,8 +98,26 @@ def warping(src, dst, H, ymin, ymax, xmin, xmax, direction='b'):
         # TODO: 5.sample the source image with the masked and reshaped transformed coordinates
         Hinvdp_valid = Hinvdp[:,mask]
         dp_valid = dp[:,mask]
-        # TODO: 6. assign to destination image with proper masking
-        dst[dp_valid[1,:],dp_valid[0,:],:] = src[Hinvdp_valid[1,:],Hinvdp_valid[0,:],:]
+        if not alpha_blending:
+            # TODO: 6. assign to destination image with proper masking
+            dst[dp_valid[1,:],dp_valid[0,:],:] = src[Hinvdp_valid[1,:],Hinvdp_valid[0,:],:]
+        else:
+            # for alpha blending
+            non_zero_dst = dst>0
+            # find intersection
+            alpha_mask = np.zeros(dst.shape)
+            alpha_mask[dp_valid[1,:],dp_valid[0,:],:] = 1
+            alpha_mask = non_zero_dst*alpha_mask
+            # TODO: 6. assign to destination image with proper masking
+            #do alpha blending
+            tmp_dst = np.copy(dst)
+            dst[dp_valid[1,:],dp_valid[0,:],:] = src[Hinvdp_valid[1,:],Hinvdp_valid[0,:],:]
+            dst = dst - alpha_mask*dst
+            tmp_dst[dp_valid[1,:],dp_valid[0,:],:] = (1-alpha)*tmp_dst[dp_valid[1,:],dp_valid[0,:],:] + \
+                                                        alpha*src[Hinvdp_valid[1,:],Hinvdp_valid[0,:],:]
+            dst = dst + alpha_mask*tmp_dst
+        
+
 
     elif direction == 'f':
         # TODO: 3.apply H to the source pixels and retrieve (u,v) pixels, then reshape to (ymax-ymin),(xmax-xmin)

@@ -7,21 +7,8 @@ import matplotlib.pyplot as plt
 
 random.seed(999)
 #RANSAC parameters
-N_tri = 10000 # number if trials
+N_tri = 10000 # number of trials
 T_dis = 5 # threshold for kicking out outliers
-
-def drawcircle_key(img,list_of_key):
-    dst = np.copy(img)
-    for i in range(10):
-        dst = cv2.circle(dst,(int(list_of_key[i].pt[0]), int(list_of_key[i].pt[1])), 10, (0, 0, 255), -1)
-    return dst
-
-def drawcircle(img,list_of_xy):
-    dst = np.copy(img)
-    for i in range(10):
-        dst = cv2.circle(dst,(int(list_of_xy[0,i]), int(list_of_xy[1,i])), 10, (0, 0, 255), -1)
-    return dst
-
 
 def panorama(imgs):
     """
@@ -59,9 +46,6 @@ def panorama(imgs):
         #matches = sorted(matches, key = lambda x:x.distance)
         #matches = matches[:int(0.8*len(matches))]
 
-        #img3 = cv2.drawMatches(im1,kp1,im2,kp2,matches[:10],None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-        #plt.imshow(img3),plt.show()
-
         kp1_xy = np.zeros((2,len(matches)))
         kp2_xy = np.zeros((2,len(matches)))
         for idx in range(len(matches)):
@@ -69,13 +53,6 @@ def panorama(imgs):
             kp1_xy[1,idx] = kp1[matches[idx].queryIdx].pt[1]
             kp2_xy[0,idx] = kp2[matches[idx].trainIdx].pt[0]
             kp2_xy[1,idx] = kp2[matches[idx].trainIdx].pt[1]
-
-        #tmp = drawcircle(im1,kp1_xy)
-        #plt.subplot(1,2,1)
-        #plt.imshow(tmp)
-        #tmp = drawcircle(im2,kp2_xy)
-        #plt.subplot(1,2,2)
-        #plt.imshow(tmp),plt.show()
 
         S_kp1 = np.pad(kp1_xy,((0,1),(0,0)),constant_values=1)
         S_kp2 = np.pad(kp2_xy,((0,1),(0,0)),constant_values=1)
@@ -103,7 +80,8 @@ def panorama(imgs):
         # TODO: 3. chain the homographies
         last_best_H = np.matmul(last_best_H,H_best)
         # TODO: 4. apply warping
-        dst = warping(im2, dst, last_best_H, 0, h_max, 0, w_max, direction='b')
+        dst = warping(im2, dst, last_best_H, 0, h_max, 0, w_max, direction='b',alpha_blending=False)
+        #dst = warping(im2, dst, last_best_H, 0, h_max, 0, w_max, direction='b',alpha_blending=True,alpha=0.5)
     
     return dst
 
